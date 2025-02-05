@@ -305,6 +305,7 @@ mod tests {
                     username text,
                     first_name text,
                     last_name text,
+                    primary_email_address text,
                     created_at timestamp,
                     updated_at timestamp,
                     attrs jsonb

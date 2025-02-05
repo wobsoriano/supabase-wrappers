@@ -48,6 +48,23 @@ impl ClerkFdw {
             return Ok(Some(Cell::Json(src_row.to_string())));
         }
 
+        // Put primary email address as main column
+        if &tgt_col_name == "primary_email_address" {
+            return Ok(src_row
+                .get("primary_email_address_id")
+                .and_then(|primary_id| {
+                    src_row
+                        .get("email_addresses")
+                        .and_then(|emails| emails.as_array())
+                        .and_then(|emails| emails.iter().find(|email| 
+                            email.get("id") == Some(primary_id)
+                        ))
+                        .and_then(|email| email.get("email_address"))
+                        .and_then(|v| v.as_str())
+                        .map(|v| Cell::String(v.to_owned()))
+                }));
+        }
+
         let src = src_row
             .as_object()
             .and_then(|v| v.get(&tgt_col_name))
