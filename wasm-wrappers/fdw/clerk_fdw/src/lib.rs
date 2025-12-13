@@ -124,7 +124,7 @@ impl ClerkFdw {
     // create a request instance
     fn create_request(&mut self, ctx: &Context) -> Result<http::Request, FdwError> {
         let quals = ctx.get_quals();
-        let mut url = String::new();
+        let url;
 
         // Handle parameterized billing endpoints
         match self.object.as_str() {
@@ -260,19 +260,25 @@ impl ClerkFdw {
         let resp_json = self.make_request(&req)?;
 
         // unify response object to array and save source rows in local batch
-        let resp_data = resp_json
-            .pointer("/data")
-            .and_then(|v| v.as_array().cloned())
-            .or_else(|| {
-                if resp_json.is_object() {
-                    Some(vec![resp_json.clone()])
-                } else if resp_json.is_array() {
-                    resp_json.as_array().cloned()
+        let resp_data = if resp_json.is_array() {
+            resp_json.as_array().cloned()
+        } else if resp_json.is_object() {
+            // First check if there's a /data field (for paginated responses)
+            if let Some(data) = resp_json.pointer("/data") {
+                if data.is_array() {
+                    data.as_array().cloned()
                 } else {
-                    None
+                    // /data exists but is a single object
+                    Some(vec![data.clone()])
                 }
-            })
-            .ok_or("cannot get query result data")?;
+            } else {
+                // No /data field - this is a single object response (like billing subscriptions)
+                Some(vec![resp_json.clone()])
+            }
+        } else {
+            Some(vec![resp_json.clone()])
+        }
+        .ok_or("cannot get query result data")?;
         self.src_rows.extend(resp_data);
 
         Ok(())
