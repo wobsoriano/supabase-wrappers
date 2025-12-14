@@ -635,6 +635,16 @@ impl Guest for ClerkFdw {
                 stmt.server_name,
             ),
             format!(
+                r#"create foreign table if not exists billing_payment_attempts (
+                    statement_id text,
+                    attrs jsonb
+                )
+                server {} options (
+                    object 'billing/statements/payment_attempts'
+                )"#,
+                stmt.server_name,
+            ),
+            format!(
                 r#"create foreign table if not exists user_billing_subscriptions (
                     user_id text,
                     attrs jsonb
@@ -651,16 +661,6 @@ impl Guest for ClerkFdw {
                 )
                 server {} options (
                     object 'organizations/billing/subscription'
-                )"#,
-                stmt.server_name,
-            ),
-            format!(
-                r#"create foreign table if not exists billing_payment_attempts (
-                    statement_id text,
-                    attrs jsonb
-                )
-                server {} options (
-                    object 'billing/statements/payment_attempts'
                 )"#,
                 stmt.server_name,
             ),

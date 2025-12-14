@@ -684,6 +684,36 @@ create foreign table clerk.billing_statement (
 - The `attrs` column contains additional attributes in JSON format
 - The query must specify `statement_id` in the WHERE clause
 
+### Billing Payment Attempts
+
+This retrieves payment attempts for a specific billing statement.
+
+Ref: [Clerk API docs](https://clerk.com/docs/reference/backend-api/tag/billing#operation/ListBillingStatementPaymentAttempts)
+
+#### Operations
+
+| Object                          | Select | Insert | Update | Delete | Truncate |
+| ------------------------------- | :----: | :----: | :----: | :----: | :------: |
+| billing/statements/payment_attempts|   ✅   |   ❌   |   ❌   |   ❌   |    ❌    |
+
+#### Usage
+
+```sql
+create foreign table clerk.billing_payment_attempts (
+  statement_id text,
+  attrs jsonb
+)
+  server clerk_server
+  options (
+    object 'billing/statements/payment_attempts'
+  );
+```
+
+#### Notes
+
+- The `attrs` column contains all payment attempt attributes in JSON format
+- The query must specify `statement_id` in the WHERE clause
+
 ### User Billing Subscriptions
 
 This retrieves the billing subscription for a specific user.
@@ -743,8 +773,6 @@ create foreign table clerk.organization_billing_subscriptions (
 
 - The `attrs` column contains all subscription attributes in JSON format
 - The query must specify `organization_id` in the WHERE clause
-
-### Billing Payment Attempts
 
 This retrieves payment attempts for a specific billing statement.
 
