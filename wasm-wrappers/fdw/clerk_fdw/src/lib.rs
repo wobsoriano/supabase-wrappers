@@ -728,4 +728,3 @@ impl Guest for ClerkFdw {
 }
 
 bindings::export!(ClerkFdw with_types_in bindings);
-
