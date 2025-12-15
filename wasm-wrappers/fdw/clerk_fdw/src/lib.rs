@@ -124,9 +124,25 @@ impl ClerkFdw {
     // create a request instance
     fn create_request(&mut self, ctx: &Context) -> Result<http::Request, FdwError> {
         let quals = ctx.get_quals();
-        let url;
 
-        // Handle parameterized billing endpoints
+        // Standard endpoints with pagination
+        // Billing endpoints don't support order_by
+        let is_billing = self.object.starts_with("billing/");
+        let qs = if is_billing {
+            vec![
+                format!("offset={}", self.src_offset),
+                format!("limit={BATCH_SIZE}"),
+            ]
+        } else {
+            vec![
+                "order_by=-created_at".to_string(),
+                format!("offset={}", self.src_offset),
+                format!("limit={BATCH_SIZE}"),
+            ]
+        };
+        let mut url = format!("{}/{}?{}", self.base_url, self.object, qs.join("&"));
+
+        // Handle parameterized endpoints
         match self.object.as_str() {
             "users/billing/subscription" => {
                 // GET /users/{user_id}/billing/subscription
@@ -184,24 +200,7 @@ impl ClerkFdw {
                     return Err("billing/statements/payment_attempts requires statement_id filter in WHERE clause".to_string());
                 }
             }
-            _ => {
-                // Standard endpoints with pagination
-                // Handle billing endpoints that don't support order_by
-                let is_billing_endpoint = self.object.starts_with("billing/");
-                let qs = if is_billing_endpoint {
-                    vec![
-                        format!("offset={}", self.src_offset),
-                        format!("limit={BATCH_SIZE}"),
-                    ]
-                } else {
-                    vec![
-                        "order_by=-created_at".to_string(),
-                        format!("offset={}", self.src_offset),
-                        format!("limit={BATCH_SIZE}"),
-                    ]
-                };
-                url = format!("{}/{}?{}", self.base_url, self.object, qs.join("&"));
-            }
+            _ => {}
         }
 
         let headers = self.headers.clone();
@@ -338,7 +337,10 @@ impl Guest for ClerkFdw {
             // For parameterized billing endpoints, don't paginate (they return single objects)
             let is_parameterized = matches!(
                 this.object.as_str(),
-                "users/billing/subscription" | "organizations/billing/subscription" | "billing/statement" | "billing/statements/payment_attempts"
+                "users/billing/subscription"
+                    | "organizations/billing/subscription"
+                    | "billing/statement"
+                    | "billing/statements/payment_attempts"
             );
 
             // local batch buffer isn't fully filled, means no more source records on remote,
@@ -664,9 +666,66 @@ impl Guest for ClerkFdw {
                 )"#,
                 stmt.server_name,
             ),
+            // GET /billing/plans
+            format!(
+                r#"create foreign table if not exists billing_plans (
+                    id text,
+                    name text,
+                    attrs jsonb
+                )
+                server {} options (
+                    object 'billing/plans'
+                )"#,
+                stmt.server_name,
+            ),
+            // GET /billing/subscription_items
+            format!(
+                r#"create foreign table if not exists billing_subscription_items (
+                    id text,
+                    attrs jsonb
+                )
+                server {} options (
+                    object 'billing/subscription_items'
+                )"#,
+                stmt.server_name,
+            ),
+            // GET /billing/statements
+            format!(
+                r#"create foreign table if not exists billing_statements (
+                    id text,
+                    attrs jsonb
+                )
+                server {} options (
+                    object 'billing/statements'
+                )"#,
+                stmt.server_name,
+            ),
+            // GET /billing/statements/{statement_id}
+            format!(
+                r#"create foreign table if not exists billing_statement (
+                    statement_id text,
+                    attrs jsonb
+                )
+                server {} options (
+                    object 'billing/statement'
+                )"#,
+                stmt.server_name,
+            ),
+            // GET /billing/statements/{statement_id}/payment_attempts
+            format!(
+                r#"create foreign table if not exists billing_payment_attempts (
+                    statement_id text,
+                    attrs jsonb
+                )
+                server {} options (
+                    object 'billing/statements/payment_attempts'
+                )"#,
+                stmt.server_name,
+            ),
         ];
         Ok(ret)
     }
 }
 
 bindings::export!(ClerkFdw with_types_in bindings);
+
