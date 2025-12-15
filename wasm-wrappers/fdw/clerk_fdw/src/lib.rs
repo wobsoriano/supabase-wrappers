@@ -155,7 +155,7 @@ impl ClerkFdw {
                         return Err("user_id must be a string value".to_string());
                     }
                 } else {
-                    return Err("users/billing/subscription requires user_id filter in WHERE clause".to_string());
+                    return Err("user_id is required in WHERE clause for users/billing/subscription".to_string());
                 }
             }
             "organizations/billing/subscription" => {
@@ -169,7 +169,7 @@ impl ClerkFdw {
                         return Err("organization_id must be a string value".to_string());
                     }
                 } else {
-                    return Err("organizations/billing/subscription requires organization_id filter in WHERE clause".to_string());
+                    return Err("organization_id is required in WHERE clause for organizations/billing/subscription".to_string());
                 }
             }
             "billing/statement" => {
@@ -183,7 +183,7 @@ impl ClerkFdw {
                         return Err("statement_id must be a string value".to_string());
                     }
                 } else {
-                    return Err("billing/statement requires statement_id filter in WHERE clause".to_string());
+                    return Err("statement_id is required in WHERE clause for billing/statement".to_string());
                 }
             }
             "billing/statements/payment_attempts" => {
@@ -197,7 +197,7 @@ impl ClerkFdw {
                         return Err("statement_id must be a string value".to_string());
                     }
                 } else {
-                    return Err("billing/statements/payment_attempts requires statement_id filter in WHERE clause".to_string());
+                    return Err("statement_id is required in WHERE clause for billing/statements/payment_attempts".to_string());
                 }
             }
             _ => {}
@@ -649,6 +649,11 @@ impl Guest for ClerkFdw {
             format!(
                 r#"create foreign table if not exists user_billing_subscriptions (
                     user_id text,
+                    id text,
+                    status text,
+                    payer_id text,
+                    created_at timestamp,
+                    updated_at timestamp,
                     attrs jsonb
                 )
                 server {} options (
@@ -659,6 +664,11 @@ impl Guest for ClerkFdw {
             format!(
                 r#"create foreign table if not exists organization_billing_subscriptions (
                     organization_id text,
+                    id text,
+                    status text,
+                    payer_id text,
+                    created_at timestamp,
+                    updated_at timestamp,
                     attrs jsonb
                 )
                 server {} options (
@@ -671,6 +681,10 @@ impl Guest for ClerkFdw {
                 r#"create foreign table if not exists billing_plans (
                     id text,
                     name text,
+                    description text,
+                    slug text,
+                    is_default boolean,
+                    is_recurring boolean,
                     attrs jsonb
                 )
                 server {} options (
@@ -682,6 +696,13 @@ impl Guest for ClerkFdw {
             format!(
                 r#"create foreign table if not exists billing_subscription_items (
                     id text,
+                    status text,
+                    plan_id text,
+                    plan_period text,
+                    payer_id text,
+                    is_free_trial boolean,
+                    created_at timestamp,
+                    updated_at timestamp,
                     attrs jsonb
                 )
                 server {} options (
@@ -693,6 +714,8 @@ impl Guest for ClerkFdw {
             format!(
                 r#"create foreign table if not exists billing_statements (
                     id text,
+                    status text,
+                    timestamp timestamp,
                     attrs jsonb
                 )
                 server {} options (
@@ -704,6 +727,8 @@ impl Guest for ClerkFdw {
             format!(
                 r#"create foreign table if not exists billing_statement (
                     statement_id text,
+                    status text,
+                    timestamp timestamp,
                     attrs jsonb
                 )
                 server {} options (
@@ -715,6 +740,9 @@ impl Guest for ClerkFdw {
             format!(
                 r#"create foreign table if not exists billing_payment_attempts (
                     statement_id text,
+                    status text,
+                    created_at timestamp,
+                    updated_at timestamp,
                     attrs jsonb
                 )
                 server {} options (
