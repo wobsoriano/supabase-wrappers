@@ -334,7 +334,7 @@ impl Guest for ClerkFdw {
         while this.src_idx >= this.src_rows.len() {
             let consumed_cnt = this.src_rows.len();
 
-            // For parameterized billing endpoints, don't paginate (they return single objects)
+            // For parameterized billing endpoints, don't paginate (scoped to specific resource)
             let is_parameterized = matches!(
                 this.object.as_str(),
                 "users/billing/subscription"
@@ -727,6 +727,7 @@ impl Guest for ClerkFdw {
             format!(
                 r#"create foreign table if not exists billing_statement (
                     statement_id text,
+                    id text,
                     status text,
                     timestamp timestamp,
                     attrs jsonb
@@ -740,6 +741,7 @@ impl Guest for ClerkFdw {
             format!(
                 r#"create foreign table if not exists billing_payment_attempts (
                     statement_id text,
+                    id text,
                     status text,
                     created_at timestamp,
                     updated_at timestamp,
